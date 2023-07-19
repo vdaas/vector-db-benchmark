@@ -31,11 +31,11 @@ CONFIG_MAP = client.V1ConfigMap(
 )
 
 SERVICE_PORT = client.V1ServicePort(
-    name="grpc", port=8081, target_port=8081, protocol="TCP", node_port=30081
+    name="grpc", port=8081, target_port='grpc', protocol="TCP", node_port=31081
 )
 
 READINESS_PORT = client.V1ServicePort(
-    name="readiness", port=3001, target_port=3001, protocol="TCP", node_port=30001
+    name="readiness", port=3001, target_port='readiness', protocol="TCP", node_port=31001
 )
 
 SERVICE = client.V1Service(
@@ -48,6 +48,7 @@ SERVICE = client.V1Service(
             "app.kubernetes.io/component": "agent",
         },
         type="NodePort",
+        cluster_ip=None,
     ),
 )
 
@@ -57,7 +58,7 @@ STATEFUL_SET = client.V1StatefulSet(
     spec=client.V1StatefulSetSpec(
         service_name="vald-agent-ngt",
         pod_management_policy="Parallel",
-        replicas=4,
+        replicas=1,
         revision_history_limit=2,
         selector=_label_selector,
         update_strategy=client.V1StatefulSetUpdateStrategy(

@@ -1,7 +1,8 @@
 import grpc
+import urllib
 from typing import List
 from engine.base_client.upload import BaseUploader
-from engine.clients.vald.config import SERVICE_PORT
+from engine.clients.vald.config import SERVICE_PORT, READINESS_PORT
 from vald.v1.agent.core import agent_pb2_grpc
 from vald.v1.vald import insert_pb2_grpc
 from vald.v1.payload import payload_pb2
@@ -20,6 +21,14 @@ class ValdUploader(BaseUploader):
             **upload_params["index_config"]
         )
 
+        while True:
+            try:
+                with urllib.request.urlopen(f"http://{host}:{READINESS_PORT.node_port}/readiness") as response:
+                    if response.getcode() == 200:
+                        break
+            except (urllib.error.HTTPError, urllib.error.URLError):
+                pass
+
     @classmethod
     def upload_batch(
         cls, ids: List[int], vectors: List[list], metadata: List[dict | None]
@@ -33,6 +42,6 @@ class ValdUploader(BaseUploader):
         istub = insert_pb2_grpc.InsertStub(cls.channel)
         for _ in istub.StreamInsert(iter(requests)):
             pass
-
+        
         astub = agent_pb2_grpc.AgentStub(cls.channel)
         astub.CreateIndex(cls.acfg)

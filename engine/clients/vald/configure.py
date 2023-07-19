@@ -63,26 +63,21 @@ class ValdConfigurator(BaseConfigurator):
         if len(res.items) > 0:
             scheduling_api.delete_priority_class(PRIORITY_CLASS.metadata.name)
         
-        time.sleep(10) # TODO: using watch
+        time.sleep(30) # TODO: using watch
 
     def recreate(self, dataset: Dataset, collection_params):
         api_client = k8s.client.ApiClient()
         configmap = CONFIG_MAP
         with open(collection_params["base_config"]) as f:
             cfg = yaml.safe_load(f)
+            cfg['ngt'] |= collection_params["ngt_config"] | {
+                    "dimension": dataset.config.vector_size,
+                    "distance_type": self.DISTANCE_MAPPING[
+                        dataset.config.distance
+                    ]
+                }
             configmap.data = {
-                "config.yaml": yaml.safe_dump(
-                    {
-                        **cfg,
-                        **collection_params["ngt_config"],
-                        **{
-                            "dimension": dataset.config.vector_size,
-                            "distance_type": self.DISTANCE_MAPPING[
-                                dataset.config.distance
-                            ],
-                        },
-                    }
-                )
+                "config.yaml": yaml.safe_dump(cfg)
             }
 
         policy_api = k8s.client.PolicyV1Api(api_client)

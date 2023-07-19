@@ -17,13 +17,13 @@
           }
         },
         "search_params": [
-          {"radius": -1, "epsilon": 0.6, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.8, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.9, "timeout":3000000},
-          {"radius": -1, "epsilon": 1.02, "timeout":3000000},
-          {"radius": -1, "epsilon": 1.05, "timeout":3000000},
-          {"radius": -1, "epsilon": 1.1, "timeout":3000000},
-          {"radius": -1, "epsilon": 1.2, "timeout":3000000}
+          {"radius": -1, "epsilon": -0.4, "timeout":3000000},
+          {"radius": -1, "epsilon": -0.2, "timeout":3000000},
+          {"radius": -1, "epsilon": -0.1, "timeout":3000000},
+          {"radius": -1, "epsilon": 0.02, "timeout":3000000},
+          {"radius": -1, "epsilon": 0.05, "timeout":3000000},
+          {"radius": -1, "epsilon": 0.1, "timeout":3000000},
+          {"radius": -1, "epsilon": 0.2, "timeout":3000000}
         ],
         "upload_params": {
           "insert_config": {
