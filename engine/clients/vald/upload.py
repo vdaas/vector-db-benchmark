@@ -42,6 +42,9 @@ class ValdUploader(BaseUploader):
         istub = insert_pb2_grpc.InsertStub(cls.channel)
         for _ in istub.StreamInsert(iter(requests)):
             pass
-        
+
+    @classmethod
+    def post_upload(cls, distance):
         astub = agent_pb2_grpc.AgentStub(cls.channel)
         astub.CreateIndex(cls.acfg)
+        return {}

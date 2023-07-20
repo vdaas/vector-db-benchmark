@@ -1,37 +1,43 @@
 [
-    {
-        "name": "vald-single-node-fp32",
-        "engine": "vald",
-        "connection_params": {
-          "kubeconfig": "./engine/servers/vald-single-node/kubeconfig.yaml",
-          "grpc_opts": [
-              ["grpc.keepalive_time_ms", 10000],
-              ["grpc.keepalive_timeout_ms", 10000],
-              ["grpc.max_connection_idle_ms", 50000]
-          ]
-        },
-        "collection_params": {
-          "base_config": "./engine/servers/vald-single-node/vald.yaml",
-          "ngt_config": {
-            "bulk":100, "edge": 20, "searchedge": 60, "object_type": "float"
-          }
-        },
-        "search_params": [
-          {"radius": -1, "epsilon": -0.4, "timeout":3000000},
-          {"radius": -1, "epsilon": -0.2, "timeout":3000000},
-          {"radius": -1, "epsilon": -0.1, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.02, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.05, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.1, "timeout":3000000},
-          {"radius": -1, "epsilon": 0.2, "timeout":3000000}
-        ],
-        "upload_params": {
-          "insert_config": {
-            "skip_strict_exist_check": true
-          },
-          "index_config": {
-            "pool_size": 10000
-          }
-        }
+  {
+    "name": "vald-single-node-fp32-edge-16-searchedge-64",
+    "engine": "vald",
+    "connection_params": {
+      "kubeconfig": "./engine/servers/vald-single-node/kubeconfig.yaml",
+      "grpc_opts": [
+        ["grpc.keepalive_time_ms", 10000],
+        ["grpc.keepalive_timeout_ms", 10000],
+        ["grpc.max_connection_idle_ms", 50000]
+      ]
+    },
+    "collection_params": {
+      "base_config": "./engine/servers/vald-single-node/vald.yaml",
+      "ngt_config": {
+        "bulk":100, "edge": 16, "searchedge": 64, "object_type": "float"
       }
+    },
+    "search_params": [
+      { "parallel": 1, "search_params": { "epsilon": 0.2, "timeout":3000000 } },
+      { "parallel": 2, "search_params": { "epsilon": 0.2, "timeout":3000000 } },
+      { "parallel": 4, "search_params": { "epsilon": 0.2, "timeout":3000000 } },
+      { "parallel": 8, "search_params": { "epsilon": 0.2, "timeout":3000000 } },
+      { "parallel": 1, "search_params": { "epsilon": 0.4, "timeout":3000000 } },
+      { "parallel": 2, "search_params": { "epsilon": 0.4, "timeout":3000000 } },
+      { "parallel": 4, "search_params": { "epsilon": 0.4, "timeout":3000000 } },
+      { "parallel": 8, "search_params": { "epsilon": 0.4, "timeout":3000000 } },
+      { "parallel": 1, "search_params": { "epsilon": 1.0, "timeout":3000000 } },
+      { "parallel": 2, "search_params": { "epsilon": 1.0, "timeout":3000000 } },
+      { "parallel": 4, "search_params": { "epsilon": 1.0, "timeout":3000000 } },
+      { "parallel": 8, "search_params": { "epsilon": 1.0, "timeout":3000000 } }
+    ],
+    "upload_params": {
+      "insert_config": {
+        "skip_strict_exist_check": true
+      },
+      "index_config": {
+        "pool_size": 10000
+      },
+      "parallel": 16
+    }
+  }
 ]

@@ -17,7 +17,7 @@ class ValdSearcher(BaseSearcher):
         grpc_opts = map(lambda x: tuple(x), connection_params["grpc_opts"])
         channel = grpc.insecure_channel(f"{host}:{SERVICE_PORT.node_port}", grpc_opts)
         cls.stub = search_pb2_grpc.SearchStub(channel)
-        cls.cfg = payload_pb2.Search.Config(**search_params)
+        cls.cfg = payload_pb2.Search.Config(**search_params['search_params'])
 
     @classmethod
     def search_one(
