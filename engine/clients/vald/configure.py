@@ -1,22 +1,9 @@
+import datetime
 import kubernetes as k8s
-import time
 import yaml
 from benchmark.dataset import Dataset
 from engine.base_client.configure import BaseConfigurator
 from engine.base_client.distances import Distance
-from engine.clients.vald.config import (
-    POD_DISRUPTION_BUDGET,
-    CONFIG_MAP,
-    SERVICE,
-    STATEFUL_SET,
-    PRIORITY_CLASS,
-)
-
-
-def _delete(f1, f2, resource, namespace="default"):
-    res = f1(namespace, field_selector=f"metadata.name={resource.metadata.name}")
-    if len(res.items) > 0:
-        f2(resource.metadata.name, namespace)
 
 
 class ValdConfigurator(BaseConfigurator):
@@ -30,66 +17,26 @@ class ValdConfigurator(BaseConfigurator):
         super().__init__(host, collection_params, connection_params)
 
         k8s.config.load_kube_config(connection_params["kubeconfig"])
+        with open(collection_params["base_config"]) as f:
+            self.base_config = yaml.safe_load(f)
 
     def clean(self):
-        api_client = k8s.client.ApiClient()
-        policy_api = k8s.client.PolicyV1Api(api_client)
-        _delete(
-            policy_api.list_namespaced_pod_disruption_budget,
-            policy_api.delete_namespaced_pod_disruption_budget,
-            POD_DISRUPTION_BUDGET,
-        )
-        core_api = k8s.client.CoreV1Api(api_client)
-        _delete(
-            core_api.list_namespaced_config_map,
-            core_api.delete_namespaced_config_map,
-            CONFIG_MAP,
-        )
-        _delete(
-            core_api.list_namespaced_service,
-            core_api.delete_namespaced_service,
-            SERVICE,
-        )
-        apps_api = k8s.client.AppsV1Api(api_client)
-        _delete(
-            apps_api.list_namespaced_stateful_set,
-            apps_api.delete_namespaced_stateful_set,
-            STATEFUL_SET,
-        )
-        scheduling_api = k8s.client.SchedulingV1Api(api_client)
-        res = scheduling_api.list_priority_class(
-            field_selector=f"metadata.name={PRIORITY_CLASS.metadata.name}"
-        )
-        if len(res.items) > 0:
-            scheduling_api.delete_priority_class(PRIORITY_CLASS.metadata.name)
-        
-        time.sleep(30) # TODO: using watch
+        pass
 
     def recreate(self, dataset: Dataset, collection_params):
         api_client = k8s.client.ApiClient()
-        configmap = CONFIG_MAP
-        with open(collection_params["base_config"]) as f:
-            cfg = yaml.safe_load(f)
-            cfg['ngt'] |= collection_params["ngt_config"] | {
-                    "dimension": dataset.config.vector_size,
-                    "distance_type": self.DISTANCE_MAPPING[
-                        dataset.config.distance
-                    ]
-                }
-            configmap.data = {
-                "config.yaml": yaml.safe_dump(cfg)
-            }
 
-        policy_api = k8s.client.PolicyV1Api(api_client)
-        policy_api.create_namespaced_pod_disruption_budget(
-            "default", POD_DISRUPTION_BUDGET
-        )
+        ngt_config = collection_params["ngt_config"] | {
+            "dimension": dataset.config.vector_size,
+            "distance_type": self.DISTANCE_MAPPING[dataset.config.distance]
+        }
         core_api = k8s.client.CoreV1Api(api_client)
-        core_api.create_namespaced_config_map("default", configmap)
-        core_api.create_namespaced_service("default", SERVICE)
-        apps_api = k8s.client.AppsV1Api(api_client)
-        apps_api.create_namespaced_stateful_set("default", STATEFUL_SET)
-        scheduling_api = k8s.client.SchedulingV1Api(api_client)
-        scheduling_api.create_priority_class(PRIORITY_CLASS)
+        core_api.patch_namespaced_config_map("vald-agent-ngt-config", "default", body={"data":{"config.yaml":yaml.safe_dump(self.base_config|{'ngt': ngt_config})}})
 
-        time.sleep(30) # TODO: using watch
+        apps_api = k8s.client.AppsV1Api(api_client)
+        apps_api.patch_namespaced_stateful_set("vald-agent-ngt", "default", body={"spec":{"template":{"metadata":{"annotations":{"reloaded-at":datetime.datetime.now().isoformat()}}}}})
+
+        w = k8s.watch.Watch()
+        for event in w.stream(apps_api.list_namespaced_stateful_set, namespace='default', label_selector='app=vald-agent-ngt', timeout_seconds=30):
+            if event['object'].status.available_replicas is not None and event['object'].status.available_replicas != 0:
+                w.stop()

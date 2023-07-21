@@ -1,13 +1,12 @@
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 import grpc
 from engine.base_client.search import BaseSearcher
 from vald.v1.vald import search_pb2_grpc
 from vald.v1.payload import payload_pb2
-from engine.clients.vald.config import SERVICE_PORT
 
 
 class ValdSearcher(BaseSearcher):
-    cfg: Dict = None
+    cfg: payload_pb2.Search.Config = None
     stub: search_pb2_grpc.SearchStub = None
 
     @classmethod
@@ -15,7 +14,7 @@ class ValdSearcher(BaseSearcher):
         cls, host: str, distance, connection_params: dict, search_params: dict
     ):
         grpc_opts = map(lambda x: tuple(x), connection_params["grpc_opts"])
-        channel = grpc.insecure_channel(f"{host}:{SERVICE_PORT.node_port}", grpc_opts)
+        channel = grpc.insecure_channel(f"{host}:31081", grpc_opts)
         cls.stub = search_pb2_grpc.SearchStub(channel)
         cls.cfg = payload_pb2.Search.Config(**search_params['search_params'])
 

@@ -25,10 +25,8 @@ services:
       - 80:80
       - 443:443
     healthcheck:
-      test: [ "CMD-SHELL", "kubectl get --raw='/readyz'" ]
-      interval: 1s
-      timeout: 1s
-      retries: 5
+      test: [ "CMD-SHELL", "kubectl wait --for=condition=Ready nodes --all --timeout=30s" ]
+      timeout: 30s
 
   k3s_agent:
     image: "rancher/k3s:${K3S_VERSION:-latest}"
@@ -48,6 +46,16 @@ services:
     ports:
       - 31081:31081
       - 31001:31001
+
+  install:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    entrypoint: ["kubectl", "apply", "-f=/root/resources.yaml", "--kubeconfig=/root/kubeconfig.yaml"]
+    depends_on:
+      k3s_server:
+        condition: service_healthy
+    network_mode: "host"
+    volumes:
+      - ./:/root
 
 volumes:
   k3s-server: {}
