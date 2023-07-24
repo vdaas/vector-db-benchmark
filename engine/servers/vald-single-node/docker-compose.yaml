@@ -1,0 +1,61 @@
+version: '3.7'
+
+services:
+  k3s_server:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    command: server
+    tmpfs:
+      - /run
+      - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    environment:
+      - K3S_TOKEN=${K3S_TOKEN:-vald}
+      - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+      - K3S_KUBECONFIG_MODE=666
+    volumes:
+      - k3s-server:/var/lib/rancher/k3s
+      - .:/output
+    ports:
+      - 6443:6443
+      - 80:80
+      - 443:443
+    healthcheck:
+      test: [ "CMD-SHELL", "kubectl wait --for=condition=Ready nodes --all --timeout=30s" ]
+      timeout: 30s
+
+  k3s_agent:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    command: agent
+    tmpfs:
+      - /run
+      - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    environment:
+      - K3S_URL=https://k3s_server:6443
+      - K3S_TOKEN=${K3S_TOKEN:-vald}
+    ports:
+      - 31081:31081
+      - 31001:31001
+
+  install:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    entrypoint: ["kubectl", "apply", "-f=/root/resources.yaml", "--kubeconfig=/root/kubeconfig.yaml"]
+    depends_on:
+      k3s_server:
+        condition: service_healthy
+    network_mode: "host"
+    volumes:
+      - ./:/root
+
+volumes:
+  k3s-server: {}
